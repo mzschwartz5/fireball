@@ -11,7 +11,7 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
-  tesselations: 5,
+  tesselations: 8,
   'Load Scene': loadScene, // A function pointer, essentially
   'Diffuse Color': [255, 0, 0],
   'Toggle Worley Noise View': true
