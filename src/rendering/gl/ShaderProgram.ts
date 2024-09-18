@@ -90,6 +90,16 @@ class ShaderProgram {
     gl.uniform1f(gl.getUniformLocation(this.prog, "u_Time"), time);
   }
 
+  setLoudness(loudness: number) {
+    this.use();
+    gl.uniform1f(gl.getUniformLocation(this.prog, "u_Loudness"), loudness);
+  }
+
+  setTempo(tempo: number) {
+    this.use();
+    gl.uniform1f(gl.getUniformLocation(this.prog, "u_Tempo"), tempo);
+  }
+
   draw(d: Drawable) {
     this.use();
 

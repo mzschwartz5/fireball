@@ -9,6 +9,10 @@
 
 uniform float u_Time;
 
+// Used for driving animation with music
+uniform float u_Loudness;
+uniform float u_Tempo; // BPM
+
 uniform mat4 u_Model;       // The matrix that defines the transformation of the
                             // object we're rendering. In this assignment,
                             // this will be the result of traversing your scene graph.
@@ -36,6 +40,23 @@ const vec4 lightPos = vec4(5, 5, 3, 1); //The position of our virtual light, whi
 
 const float PI = 3.14159265359;
 
+float powPulse(float x, float k) {
+    return pow(4.0 * x * (1.0 - x), k);
+}
+
+vec3 computeTangent(vec3 normal) {
+    // Choose an arbitrary vector that is not parallel to the normal
+    vec3 arbitrary = vec3(0.0, 1.0, 0.0);
+    if (abs(normal.y) > 0.999) {
+        arbitrary = vec3(1.0, 0.0, 0.0);
+    }
+
+    // Compute the tangent vector
+    vec3 tangent = normalize(cross(normal, arbitrary));
+
+    return tangent;
+}
+
 void main()
 {
     fs_Col = vs_Col;                         // Pass the vertex colors to the fragment shader for interpolation
@@ -50,6 +71,11 @@ void main()
 
     vec4 modelposition = u_Model * vs_Pos;   // Temporarily store the transformed vertex positions for use below
 
+    vec3 tangent = computeTangent(fs_Nor.xyz);
+    vec3 bitangent =  normalize(cross(fs_Nor.xyz, tangent));;
+    vec3 dTangent = modelposition.xyz + (0.0001) * tangent;
+    vec3 dBitangent = modelposition.xyz + (0.0001) * bitangent;
+
     /* Warp vertices in model space */
 
     // Low frequency sine warp
@@ -57,18 +83,35 @@ void main()
     float warpAmplitude = 0.05;
     float warpFreq = 7.0;
     float warpSpeed = 2000.0;
-    float warpBaseline = 0.0;
-    float warpAmount = warpAmplitude * sin(warpFreq * PI * (modelposition.y - (u_Time / warpSpeed))) + warpBaseline;
-    modelposition.xz += warpAmount;
+    float warpPhase = 0.0;
+    float warpAmount = warpAmplitude * sin(warpFreq * PI * (modelposition.y - (u_Time / warpSpeed) + warpPhase));
+    modelposition.xyz += warpAmount * normalize(modelposition.xyz);
 
-    /* Calculate analytical derivatives for normal recalculation */
-    float dWarp_dy = warpAmplitude * warpFreq * PI * cos(warpFreq * PI * (modelposition.y - (u_Time / warpSpeed)));
-    vec3 warp_normal = normalize(cross(vec3(dWarp_dy, 1.0, dWarp_dy), vec3(1.0, 0.0, 0.0)));
-    fs_Nor = vec4(normalize(fs_Nor.xyz + warp_normal), 0.0);
+    /* Approximate new normals */
+    float tangentWarp = warpAmplitude * sin(warpFreq * PI * (dTangent.y - (u_Time / warpSpeed) + warpPhase));
+    dTangent += tangentWarp * normalize(dTangent);
+    float bitangentWarp = warpAmplitude * sin(warpFreq * PI * (dBitangent.y - (u_Time / warpSpeed) + warpPhase));
+    dBitangent += bitangentWarp * normalize(dBitangent);
 
-    // Higher frequency sine warp
+    fs_Nor = vec4(normalize(cross(dTangent - modelposition.xyz, dBitangent - modelposition.xyz)), 0.0);
 
     /* End warp */
+
+    /* Distort vertices according to music loudness and tempo */
+
+    // Since loudness is in DB, we need to convert it to a linear scale
+    float distortionAmplitude = clamp(pow(10.0, (u_Loudness - 5.0) * 0.05), 0.05, 1.75);
+
+    if (u_Tempo != 0.0) {
+        float timePerBeat = (60.0 / u_Tempo) * 1000.0; // Time in milliseconds per beat
+        // Repeats every timePerBeat, ranges from 0 to 1.
+        // Phase shift u_Time so that the peak of the distortion is at the start of the beat
+        float modTime = mod(u_Time, timePerBeat) / timePerBeat;
+        float distortion = distortionAmplitude * powPulse(modTime, 7.0);
+        modelposition.xyz += distortion * normalize(modelposition.xyz);
+    }
+
+    /* End distortion */
 
     fs_LightVec = lightPos;
 

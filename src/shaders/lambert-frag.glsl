@@ -30,11 +30,14 @@ void main()
         // Calculate the diffuse term for Lambert shading
         float diffuseTerm = max(dot(normalize(fs_Nor), normalize(fs_LightVec)), 0.0);
 
-        float ambientTerm = 0.2;
+        float ambientTerm = 0.4;
 
         float lightIntensity = diffuseTerm + ambientTerm;   //Add a small float value to the color multiplier
                                                             //to simulate ambient lighting. This ensures that faces that are not
                                                             //lit by our point light are not completely black.
+
+        // Clamp light intensity to a maximum of 1.0
+        lightIntensity = min(lightIntensity, 1.0);
 
         // Compute final shaded color
         out_Col = vec4(diffuseColor.rgb * lightIntensity, diffuseColor.a);

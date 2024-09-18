@@ -2,7 +2,6 @@ import {vec3, vec4} from 'gl-matrix';
 const Stats = require('stats-js');
 import * as DAT from 'dat.gui';
 import Icosphere from './geometry/Icosphere';
-import Square from './geometry/Square';
 import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
 import Camera from './Camera';
 import {setGL} from './globals';
@@ -19,11 +18,17 @@ const controls = {
 
 let icosphere: Icosphere;
 let prevTesselations: number = 5;
+let prevTimestamp: number = 0;
+let musicTime = 0;
+let musicSectionIndex = 0;
+let musicSegmentIndex = 0;
+let lastUpdateTime = 0;
 
 function loadScene() {
   icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, controls.tesselations);
   icosphere.create();
 }
+
 
 function main() {
   // Initial display for framerate
@@ -69,6 +74,12 @@ function main() {
 
   // This function will be called every frame
   function tick(timestamp: number) {
+    if (prevTimestamp === 0) {
+      prevTimestamp = timestamp; // Initialize prevTimestamp with the current timestamp
+    }
+    let deltaTime = timestamp - prevTimestamp; // Calculate delta time
+    prevTimestamp = timestamp; // Update previous timestamp
+
     let shader = lambertShader;
     shader.setTime(timestamp);
 
@@ -84,6 +95,45 @@ function main() {
       icosphere.create();
     }
 
+    // Updating music uniforms
+
+    if ((window as any).isPlaying && (window as any).audioAnalysisData) {
+      let spotifyData = (window as any).audioAnalysisData;
+      musicTime += (deltaTime / 1000);
+
+      shader.setTempo(Math.floor(spotifyData.track.tempo));
+
+      if (musicSectionIndex < spotifyData.sections.length) {
+
+        if (musicTime > spotifyData.sections[musicSectionIndex].start) {
+          musicSectionIndex++;
+        }
+      }
+
+      let shouldUpdate = false;
+      let beatLength = 60 / spotifyData.track.tempo;
+      if (musicTime - lastUpdateTime > beatLength && musicTime - lastUpdateTime < beatLength + deltaTime) {
+        shouldUpdate = true;
+      }
+
+      if (musicSegmentIndex < spotifyData.segments.length) {
+        if (spotifyData.segments[musicSegmentIndex].confidence > 0.85) {
+          // Update loudness every beat (not every frame)
+          let beatLength = 60 / spotifyData.track.tempo;
+          if (shouldUpdate) {
+            console.log("HI");
+            shader.setLoudness(spotifyData.segments[musicSegmentIndex].loudness_max);
+            lastUpdateTime = musicTime;
+          }
+        }
+        if (musicTime > spotifyData.segments[musicSegmentIndex].start) {
+          musicSegmentIndex++;
+        }
+      }
+    }
+
+    // End music update
+
     const diffuseColor = controls['Diffuse Color'];
     shader.setGeometryColor(vec4.fromValues(diffuseColor[0] / 255, diffuseColor[1] / 255, diffuseColor[2] / 255, 1.0));
 
@@ -95,6 +145,7 @@ function main() {
     // Tell the browser to call `tick` again whenever it renders a new frame
     requestAnimationFrame(tick);
   }
+
 
   window.addEventListener('resize', function() {
     renderer.setSize(window.innerWidth, window.innerHeight);
