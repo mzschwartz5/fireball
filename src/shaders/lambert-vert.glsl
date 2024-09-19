@@ -66,36 +66,38 @@ vec3 computeTangent(vec3 normal) {
 const float domainNoiseScaleFactor = 0.1;      // controls domain scale of noise pattern
 const float rangeNoiseScaleFactor = 0.2;       // controls range scale of noise pattern
 
-float pseudoRandom( vec2 p ) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) *
-                 43758.5453);
+float pseudoRandom(vec3 p) {
+    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
 }
 
-// Based on my own work, here: https://www.shadertoy.com/view/slsBzl
-float noise2D(in vec2 position) {
+float noise3D(in vec3 position) {
     position /= domainNoiseScaleFactor;
 
-    vec2 ij = floor(position);
-    vec2 posFraction = fract(position);
-    vec2 smoothedPositionFract = smoothstep(0.0,1.0,posFraction);
+    vec3 ijk = floor(position);
+    vec3 posFraction = fract(position);
+    vec3 smoothedPositionFract = smoothstep(0.0, 1.0, posFraction);
 
     // Coefficients for noise function
-    float a = pseudoRandom(ij + vec2(0,0));
-    float b = pseudoRandom(ij + vec2(1,0));
-    float c = pseudoRandom(ij + vec2(0,1));
-    float d = pseudoRandom(ij + vec2(1,1));
+    float a = pseudoRandom(ijk + vec3(0, 0, 0));
+    float b = pseudoRandom(ijk + vec3(1, 0, 0));
+    float c = pseudoRandom(ijk + vec3(0, 1, 0));
+    float d = pseudoRandom(ijk + vec3(1, 1, 0));
+    float e = pseudoRandom(ijk + vec3(0, 0, 1));
+    float f = pseudoRandom(ijk + vec3(1, 0, 1));
+    float g = pseudoRandom(ijk + vec3(0, 1, 1));
+    float h = pseudoRandom(ijk + vec3(1, 1, 1));
 
-    float noise = a
-        + (b-a)*smoothedPositionFract.x
-        + (c-a)*smoothedPositionFract.y
-        + (a-b-c+d)*smoothedPositionFract.x*smoothedPositionFract.y;
+    float noise = mix(
+        mix(mix(a, b, smoothedPositionFract.x), mix(c, d, smoothedPositionFract.x), smoothedPositionFract.y),
+        mix(mix(e, f, smoothedPositionFract.x), mix(g, h, smoothedPositionFract.x), smoothedPositionFract.y),
+        smoothedPositionFract.z
+    );
 
     return rangeNoiseScaleFactor * noise;
 }
 
-// Based on my own work, here: https://www.shadertoy.com/view/slsBzl
-float fbm(in vec2 seed, int iterations) {
-    float value = noise2D(seed);
+float fbm(in vec3 seed, int iterations) {
+    float value = noise3D(seed);
     float domainScale = 1.0;
     float rangeScale = 1.0;
 
@@ -103,7 +105,7 @@ float fbm(in vec2 seed, int iterations) {
         domainScale *= 2.0;
         rangeScale /= 2.0;
 
-        float value_i = rangeScale * noise2D(domainScale * seed);
+        float value_i = rangeScale * noise3D(domainScale * seed);
         value += value_i;
     }
 
@@ -124,7 +126,7 @@ void shapeIntoFire(inout vec3 modelposition) {
 }
 
 void createFireTendrils(inout vec3 modelposition) {
-    float noise = fbm(modelposition.xz, 4);
+    float noise = fbm(vec3(modelposition.x, modelposition.y - u_Time / 8000.0, modelposition.z), 3);
 
     // As we get towards the top of the flame, the tendrils should lean towards the center.
     vec3 center = normalize(modelposition) - vec3(0.0, 1.0, 0.0);
