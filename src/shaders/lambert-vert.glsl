@@ -34,6 +34,8 @@ in vec4 vs_Col;             // The array of vertex colors passed to the shader.
 out vec4 fs_Nor;            // The array of normals that has been transformed by u_ModelInvTr. This is implicitly passed to the fragment shader.
 out vec4 fs_LightVec;       // The direction in which our virtual light lies, relative to each vertex. This is implicitly passed to the fragment shader.
 out vec4 fs_Col;            // The color of each vertex. This is implicitly passed to the fragment shader.
+out vec4 fs_Pos;            // The position of each vertex. This is implicitly passed to the fragment shader.
+out float fs_MaxHeight;        // The maximum height of the geometry. This is passed to the fragment shader.
 
 const vec4 lightPos = vec4(5, 5, 3, 1); //The position of our virtual light, which is used to compute the shading of
                                         //the geometry in the fragment shader.
@@ -46,8 +48,9 @@ float powPulse(float x, float k) {
 
 vec3 computeTangent(vec3 normal) {
     // Choose an arbitrary vector that is not parallel to the normal
-    vec3 arbitrary = vec3(0.0, 1.0, 0.0);
-    if (abs(normal.y) > 0.999) {
+    // (Specifically choosing these arbitrary vectors so that the computed tangent tends toward the positive y direction)
+    vec3 arbitrary = vec3(0.0, 0.0, 1.0);
+    if (abs(normal.z) > 0.999) {
         arbitrary = vec3(1.0, 0.0, 0.0);
     }
 
@@ -55,6 +58,80 @@ vec3 computeTangent(vec3 normal) {
     vec3 tangent = normalize(cross(normal, arbitrary));
 
     return tangent;
+}
+
+const float domainNoiseScaleFactor = 0.1;      // controls domain scale of noise pattern
+const float rangeNoiseScaleFactor = 0.2;       // controls range scale of noise pattern
+
+float pseudoRandom( vec2 p ) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) *
+                 43758.5453);
+}
+
+// Based on my own work, here: https://www.shadertoy.com/view/slsBzl
+float noise2D(in vec2 position) {
+    position /= domainNoiseScaleFactor;
+
+    vec2 ij = floor(position);
+    vec2 posFraction = fract(position);
+    vec2 smoothedPositionFract = smoothstep(0.0,1.0,posFraction);
+
+    // Coefficients for noise function
+    float a = pseudoRandom(ij + vec2(0,0));
+    float b = pseudoRandom(ij + vec2(1,0));
+    float c = pseudoRandom(ij + vec2(0,1));
+    float d = pseudoRandom(ij + vec2(1,1));
+
+    float noise = a
+        + (b-a)*smoothedPositionFract.x
+        + (c-a)*smoothedPositionFract.y
+        + (a-b-c+d)*smoothedPositionFract.x*smoothedPositionFract.y;
+
+    return rangeNoiseScaleFactor * noise;
+}
+
+// Based on my own work, here: https://www.shadertoy.com/view/slsBzl
+float fbm(in vec2 seed, int iterations) {
+    float value = noise2D(seed);
+    float domainScale = 1.0;
+    float rangeScale = 1.0;
+
+    for (int i = 1; i < iterations; i++) {
+        domainScale *= 2.0;
+        rangeScale /= 2.0;
+
+        float value_i = rangeScale * noise2D(domainScale * seed);
+        value += value_i;
+    }
+
+    return value;
+}
+
+void createBigRipples(inout vec3 modelposition) {
+    float warpAmplitude = 0.035;
+    float warpFreq = 5.0;
+    float warpSpeed = 2000.0;
+    float warpPhase = 0.0;
+    float warpAmount = warpAmplitude * sin(warpFreq * PI * (modelposition.y - (u_Time / warpSpeed) + warpPhase));
+    modelposition.xz += warpAmount * normalize(modelposition.xz);
+}
+
+void shapeIntoFire(inout vec3 modelposition) {
+    modelposition.xz *= sqrt(-(modelposition.y - 1.0) / 2.0);
+}
+
+void createFireTendrils(inout vec3 modelposition, in vec3 tangent) {
+    float noise = fbm(modelposition.xz + (u_Time / 2000.0), 2);
+    // As we get towards the top of the flame, the tendrils should go upwards more than along their tangents.
+    float upwardsFactor = pow(modelposition.y + 0.5, 3.0);
+    vec3 direction = mix(tangent, vec3(0.0, 1.0, 0.0), upwardsFactor);
+    modelposition += noise * direction;
+}
+
+void overallFireTransformation(inout vec3 modelposition, in vec3 tangent) {
+    createBigRipples(modelposition);
+    shapeIntoFire(modelposition);
+    createFireTendrils(modelposition, tangent);
 }
 
 void main()
@@ -76,26 +153,13 @@ void main()
     vec3 dTangent = modelposition.xyz + (0.0001) * tangent;
     vec3 dBitangent = modelposition.xyz + (0.0001) * bitangent;
 
-    /* Warp vertices in model space */
-
-    // Low frequency sine warp
-
-    float warpAmplitude = 0.05;
-    float warpFreq = 7.0;
-    float warpSpeed = 2000.0;
-    float warpPhase = 0.0;
-    float warpAmount = warpAmplitude * sin(warpFreq * PI * (modelposition.y - (u_Time / warpSpeed) + warpPhase));
-    modelposition.xyz += warpAmount * normalize(modelposition.xyz);
+    /* Warp vertices in model space to look like fire */
+    overallFireTransformation(modelposition.xyz, tangent);
 
     /* Approximate new normals */
-    float tangentWarp = warpAmplitude * sin(warpFreq * PI * (dTangent.y - (u_Time / warpSpeed) + warpPhase));
-    dTangent += tangentWarp * normalize(dTangent);
-    float bitangentWarp = warpAmplitude * sin(warpFreq * PI * (dBitangent.y - (u_Time / warpSpeed) + warpPhase));
-    dBitangent += bitangentWarp * normalize(dBitangent);
-
+    overallFireTransformation(dTangent, tangent);
+    overallFireTransformation(dBitangent, tangent);
     fs_Nor = vec4(normalize(cross(dTangent - modelposition.xyz, dBitangent - modelposition.xyz)), 0.0);
-
-    /* End warp */
 
     /* Distort vertices according to music loudness and tempo */
 
@@ -114,6 +178,13 @@ void main()
     /* End distortion */
 
     fs_LightVec = lightPos;
+
+    fs_Pos = modelposition;
+
+    // Transform the top point on the sphere to get the maximum height of the geometry
+    vec3 topPoint = vec3(0.01, 1.0, 0.01);
+    overallFireTransformation(topPoint, vec3(1.0, 0.0, 0.0));
+    fs_MaxHeight = topPoint.y;
 
     gl_Position = u_ViewProj * modelposition; // gl_Position is a built-in variable of OpenGL which is
                                               // used to render the final positions of the geometry's vertices

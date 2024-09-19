@@ -1,4 +1,4 @@
-import {vec4, mat4} from 'gl-matrix';
+import {vec4, vec3, mat4} from 'gl-matrix';
 import Drawable from './Drawable';
 import {gl} from '../../globals';
 
@@ -98,6 +98,11 @@ class ShaderProgram {
   setTempo(tempo: number) {
     this.use();
     gl.uniform1f(gl.getUniformLocation(this.prog, "u_Tempo"), tempo);
+  }
+
+  setLookDirection(lookDirection: vec3) {
+    this.use();
+    gl.uniform3fv(gl.getUniformLocation(this.prog, "u_LookDirection"), lookDirection);
   }
 
   draw(d: Drawable) {

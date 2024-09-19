@@ -62,7 +62,7 @@ function main() {
   const camera = new Camera(vec3.fromValues(0, 0, 5), vec3.fromValues(0, 0, 0));
 
   const renderer = new OpenGLRenderer(canvas);
-  renderer.setClearColor(0.5, 0.5, 0.5, 1);
+  renderer.setClearColor(0.05, 0.05, 0.05, 1);
   gl.enable(gl.DEPTH_TEST);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -84,6 +84,8 @@ function main() {
     shader.setTime(timestamp);
 
     camera.update();
+    shader.setLookDirection(camera.getLookDirection());
+
     stats.begin();
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
 
@@ -145,7 +147,6 @@ function main() {
     // Tell the browser to call `tick` again whenever it renders a new frame
     requestAnimationFrame(tick);
   }
-
 
   window.addEventListener('resize', function() {
     renderer.setSize(window.innerWidth, window.innerHeight);

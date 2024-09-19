@@ -36,6 +36,13 @@ class Camera {
     vec3.add(this.target, this.position, this.direction);
     mat4.lookAt(this.viewMatrix, this.controls.eye, this.controls.center, this.controls.up);
   }
+
+  getLookDirection(): vec3 {
+    let lookDirection = vec3.create();
+    vec3.subtract(lookDirection, this.controls.center, this.controls.eye);
+    vec3.normalize(lookDirection, lookDirection);
+    return lookDirection;
+  }
 };
 
 export default Camera;
