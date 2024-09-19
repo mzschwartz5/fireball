@@ -35,7 +35,6 @@ out vec4 fs_Nor;            // The array of normals that has been transformed by
 out vec4 fs_LightVec;       // The direction in which our virtual light lies, relative to each vertex. This is implicitly passed to the fragment shader.
 out vec4 fs_Col;            // The color of each vertex. This is implicitly passed to the fragment shader.
 out vec4 fs_Pos;            // The position of each vertex. This is implicitly passed to the fragment shader.
-out float fs_MaxHeight;        // The maximum height of the geometry. This is passed to the fragment shader.
 
 const vec4 lightPos = vec4(5, 5, 3, 1); //The position of our virtual light, which is used to compute the shading of
                                         //the geometry in the fragment shader.
@@ -44,6 +43,10 @@ const float PI = 3.14159265359;
 
 float powPulse(float x, float k) {
     return pow(4.0 * x * (1.0 - x), k);
+}
+
+float bias(float b, float t) {
+    return pow(t, log(b) / log(0.5));
 }
 
 vec3 computeTangent(vec3 normal) {
@@ -110,7 +113,7 @@ float fbm(in vec2 seed, int iterations) {
 void createBigRipples(inout vec3 modelposition) {
     float warpAmplitude = 0.035;
     float warpFreq = 5.0;
-    float warpSpeed = 2000.0;
+    float warpSpeed = 2500.0;
     float warpPhase = 0.0;
     float warpAmount = warpAmplitude * sin(warpFreq * PI * (modelposition.y - (u_Time / warpSpeed) + warpPhase));
     modelposition.xz += warpAmount * normalize(modelposition.xz);
@@ -120,18 +123,20 @@ void shapeIntoFire(inout vec3 modelposition) {
     modelposition.xz *= sqrt(-(modelposition.y - 1.0) / 2.0);
 }
 
-void createFireTendrils(inout vec3 modelposition, in vec3 tangent) {
-    float noise = fbm(modelposition.xz + (u_Time / 2000.0), 2);
-    // As we get towards the top of the flame, the tendrils should go upwards more than along their tangents.
-    float upwardsFactor = pow(modelposition.y + 0.5, 3.0);
-    vec3 direction = mix(tangent, vec3(0.0, 1.0, 0.0), upwardsFactor);
-    modelposition += noise * direction;
+void createFireTendrils(inout vec3 modelposition) {
+    float noise = fbm(modelposition.xz, 4);
+
+    // As we get towards the top of the flame, the tendrils should lean towards the center.
+    vec3 center = normalize(modelposition) - vec3(0.0, 1.0, 0.0);
+    float upwardsFactor = bias(0.4, (modelposition.y + 1.0) / 2.0);
+    vec3 tendrilDirection = mix(vec3(0.0, 1.0, 0.0), center, upwardsFactor);
+    modelposition += (3.5 * upwardsFactor * noise * vec3(0.0, 1.0, 0.0));
 }
 
-void overallFireTransformation(inout vec3 modelposition, in vec3 tangent) {
+void overallFireTransformation(inout vec3 modelposition) {
     createBigRipples(modelposition);
     shapeIntoFire(modelposition);
-    createFireTendrils(modelposition, tangent);
+    createFireTendrils(modelposition);
 }
 
 void main()
@@ -148,19 +153,8 @@ void main()
 
     vec4 modelposition = u_Model * vs_Pos;   // Temporarily store the transformed vertex positions for use below
 
-    vec3 tangent = computeTangent(fs_Nor.xyz);
-    vec3 bitangent =  normalize(cross(fs_Nor.xyz, tangent));;
-    vec3 dTangent = modelposition.xyz + (0.0001) * tangent;
-    vec3 dBitangent = modelposition.xyz + (0.0001) * bitangent;
-
     /* Warp vertices in model space to look like fire */
-    overallFireTransformation(modelposition.xyz, tangent);
-
-    /* Approximate new normals */
-    overallFireTransformation(dTangent, tangent);
-    overallFireTransformation(dBitangent, tangent);
-    fs_Nor = vec4(normalize(cross(dTangent - modelposition.xyz, dBitangent - modelposition.xyz)), 0.0);
-
+    overallFireTransformation(modelposition.xyz);
     /* Distort vertices according to music loudness and tempo */
 
     // Since loudness is in DB, we need to convert it to a linear scale
@@ -180,11 +174,6 @@ void main()
     fs_LightVec = lightPos;
 
     fs_Pos = modelposition;
-
-    // Transform the top point on the sphere to get the maximum height of the geometry
-    vec3 topPoint = vec3(0.01, 1.0, 0.01);
-    overallFireTransformation(topPoint, vec3(1.0, 0.0, 0.0));
-    fs_MaxHeight = topPoint.y;
 
     gl_Position = u_ViewProj * modelposition; // gl_Position is a built-in variable of OpenGL which is
                                               // used to render the final positions of the geometry's vertices

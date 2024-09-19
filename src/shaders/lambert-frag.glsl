@@ -13,12 +13,12 @@ precision highp float;
 
 uniform vec4 u_Color; // The color with which to render this instance of geometry.
 uniform vec3 u_LookDirection;
+uniform float u_Time;
 
 // These are the interpolated values out of the rasterizer, so you can't know
 // their specific values without knowing the vertices that contributed to them
 in vec4 fs_Nor;
 in vec4 fs_Pos;
-in float fs_MaxHeight;
 
 out vec4 out_Col; // This is the final output color that you will see on your
                   // screen for the pixel that is currently being processed.
@@ -106,13 +106,15 @@ float bias(float b, float t) {
 
 vec4 red  = vec4(1.0, 0.0, 0.0, 1.0);
 vec4 yellow = vec4(1.0, 1.0, 0.0, 1.0);
+vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
 
 void main()
 {
-    float posYNormalized = (fs_Pos.y + 1.0) / (fs_MaxHeight + 1.0);
-    float alpha = 1.0 - bias(0.05, posYNormalized);
+    float maxHeight = 4.5; // top vert starts at 1.0 and then can be distorted by as much as 2.5 upwards
+    float posYNormalized = (1.0 + fs_Pos.y) / (1.0 + maxHeight);
+    float alpha = 1.0;
     float radius = length(fs_Pos.xyz);
-    float noise = clamp(cnoise(fs_Pos.xyz, 2.0), 0.0, 1.0);
+    float noise = clamp(cnoise(vec3(fs_Pos.x, fs_Pos.y - u_Time / 2000.0, fs_Pos.z), 2.0), 0.0, 1.0);
 
     // Mix color between firey yellow and firey red based on noise
     vec4 emissionColor = mix(yellow, red, noise);
@@ -121,17 +123,17 @@ void main()
     // that the flame will be less intense when it is more red.
     float intensity = mix(1.0, 0.5, pow(noise, 2.0));
 
-    // Make the flame more red towards the top
+    // Make flame redder, less intense, towards the top
     emissionColor = mix(emissionColor, red , posYNormalized);
-    intensity *= bias(0.40, 1.0 - posYNormalized);
+    intensity *= (1.0 - bias(0.2,  posYNormalized));
 
-    // Points whose normals align with the camera should be brighter
-    // Abs because fire transmits light so it doesn't really matter if a point is facing towards or away from the camera.
+    // Note that the normals here are the normals of the original sphere. I just found this worked better even though it's a proxy.
+    // abs() because fire transmits light so it doesn't really matter if a point is facing towards or away from the camera.
     float normalAlignment = abs(dot(fs_Nor.xyz, u_LookDirection));
-    alpha *= bias(0.70, normalAlignment);
+    alpha *= bias(0.2, normalAlignment);
 
     // More red around the edges
-    emissionColor = mix(red, emissionColor, bias(0.25, normalAlignment));
+    emissionColor = mix(red, emissionColor, bias(0.8, normalAlignment));
 
     // Compute final shaded color
     out_Col = vec4(intensity * emissionColor.rgb, alpha);
