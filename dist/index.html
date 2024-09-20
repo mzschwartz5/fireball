@@ -16,7 +16,7 @@
       <script src="https://sdk.scdn.co/spotify-player.js"></script>
   </head>
   <body>
-    <div class="fixed top-4 left-4 z-50 p-4 bg-transparent rounded shadow-lg">
+    <div class="fixed top-4 left-4 z-50 p-4 bg-transparent rounded">
       <div id="embed-iframe"></div>
       <button id="login-button" class="bg-green-500 text-white font-bold py-2 px-4 rounded shadow-lg hover:bg-green-600 mt-4">Log in with Spotify</button>
       <input type="text" id="search-query" class="mt-4 p-2 bg-gray-300 rounded shadow-md" placeholder="Search for a song">
@@ -26,7 +26,7 @@
 
     <script>
       const clientId = 'f14888f06a444dbcbccc5b28f4c17c44';
-      const redirectUri = 'http://localhost:5660';
+      const redirectUri = 'https://mzschwartz5.github.io/hw01-fireball/';
       let deviceId = null;
       let token = null;
       let embedController;
