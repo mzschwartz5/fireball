@@ -36,9 +36,6 @@ out vec4 fs_LightVec;       // The direction in which our virtual light lies, re
 out vec4 fs_Col;            // The color of each vertex. This is implicitly passed to the fragment shader.
 out vec4 fs_Pos;            // The position of each vertex. This is implicitly passed to the fragment shader.
 
-const vec4 lightPos = vec4(5, 5, 3, 1); //The position of our virtual light, which is used to compute the shading of
-                                        //the geometry in the fragment shader.
-
 const float PI = 3.14159265359;
 
 float powPulse(float x, float k) {
@@ -47,20 +44,6 @@ float powPulse(float x, float k) {
 
 float bias(float b, float t) {
     return pow(t, log(b) / log(0.5));
-}
-
-vec3 computeTangent(vec3 normal) {
-    // Choose an arbitrary vector that is not parallel to the normal
-    // (Specifically choosing these arbitrary vectors so that the computed tangent tends toward the positive y direction)
-    vec3 arbitrary = vec3(0.0, 0.0, 1.0);
-    if (abs(normal.z) > 0.999) {
-        arbitrary = vec3(1.0, 0.0, 0.0);
-    }
-
-    // Compute the tangent vector
-    vec3 tangent = normalize(cross(normal, arbitrary));
-
-    return tangent;
 }
 
 const float domainNoiseScaleFactor = 0.1;      // controls domain scale of noise pattern
@@ -115,7 +98,7 @@ float fbm(in vec3 seed, int iterations) {
 void createBigRipples(inout vec3 modelposition) {
     float warpAmplitude = 0.035;
     float warpFreq = 5.0;
-    float warpSpeed = 2500.0;
+    float warpSpeed = 1500.0;
     float warpPhase = 0.0;
     float warpAmount = warpAmplitude * sin(warpFreq * PI * (modelposition.y - (u_Time / warpSpeed) + warpPhase));
     modelposition.xz += warpAmount * normalize(modelposition.xz);
@@ -172,8 +155,6 @@ void main()
     }
 
     /* End distortion */
-
-    fs_LightVec = lightPos;
 
     fs_Pos = modelposition;
 

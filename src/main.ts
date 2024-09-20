@@ -1,4 +1,4 @@
-import {vec3, vec4} from 'gl-matrix';
+import {vec3, vec2} from 'gl-matrix';
 const Stats = require('stats-js');
 import * as DAT from 'dat.gui';
 import Icosphere from './geometry/Icosphere';
@@ -6,18 +6,16 @@ import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
 import Camera from './Camera';
 import {setGL} from './globals';
 import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
+import Square from './geometry/Square';
 
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
-  tesselations: 8,
   'Load Scene': loadScene, // A function pointer, essentially
-  'Diffuse Color': [255, 0, 0],
-  'Toggle Worley Noise View': true
 };
 
 let icosphere: Icosphere;
-let prevTesselations: number = 5;
+let screenSpanningQuad: Square;
 let prevTimestamp: number = 0;
 let musicTime = 0;
 let musicSectionIndex = 0;
@@ -25,8 +23,10 @@ let musicSegmentIndex = 0;
 let lastUpdateTime = 0;
 
 function loadScene() {
-  icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, controls.tesselations);
+  icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, 8);
   icosphere.create();
+  screenSpanningQuad = new Square(vec3.fromValues(0, 0, 0));
+  screenSpanningQuad.create();
 }
 
 
@@ -41,10 +41,7 @@ function main() {
 
   // Add controls to the gui
   const gui = new DAT.GUI();
-  gui.add(controls, 'tesselations', 0, 8).step(1);
   gui.add(controls, 'Load Scene');
-  gui.add(controls, 'Toggle Worley Noise View');
-  gui.addColor(controls, 'Diffuse Color');
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -63,13 +60,19 @@ function main() {
 
   const renderer = new OpenGLRenderer(canvas);
   renderer.setClearColor(0.05, 0.05, 0.05, 1);
+  renderer.initPostProcessing();
   gl.enable(gl.DEPTH_TEST);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-  const lambertShader = new ShaderProgram([
-    new Shader(gl.VERTEX_SHADER, require('./shaders/lambert-vert.glsl')),
-    new Shader(gl.FRAGMENT_SHADER, require('./shaders/lambert-frag.glsl')),
+  const fireShader = new ShaderProgram([
+    new Shader(gl.VERTEX_SHADER, require('./shaders/fire-vert.glsl')),
+    new Shader(gl.FRAGMENT_SHADER, require('./shaders/fire-frag.glsl')),
+  ]);
+
+  const postProcessShader = new ShaderProgram([
+    new Shader(gl.VERTEX_SHADER, require('./shaders/post-vert.glsl')),
+    new Shader(gl.FRAGMENT_SHADER, require('./shaders/post-frag.glsl')),
   ]);
 
   // This function will be called every frame
@@ -80,7 +83,7 @@ function main() {
     let deltaTime = timestamp - prevTimestamp; // Calculate delta time
     prevTimestamp = timestamp; // Update previous timestamp
 
-    let shader = lambertShader;
+    let shader = fireShader;
     shader.setTime(timestamp);
 
     camera.update();
@@ -88,14 +91,9 @@ function main() {
 
     stats.begin();
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+    postProcessShader.setDimensions(vec2.fromValues(window.innerWidth, window.innerHeight));
 
     renderer.clear();
-    if(controls.tesselations != prevTesselations)
-    {
-      prevTesselations = controls.tesselations;
-      icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, prevTesselations);
-      icosphere.create();
-    }
 
     // Updating music uniforms
 
@@ -121,9 +119,7 @@ function main() {
       if (musicSegmentIndex < spotifyData.segments.length) {
         if (spotifyData.segments[musicSegmentIndex].confidence > 0.85) {
           // Update loudness every beat (not every frame)
-          let beatLength = 60 / spotifyData.track.tempo;
           if (shouldUpdate) {
-            console.log("HI");
             shader.setLoudness(spotifyData.segments[musicSegmentIndex].loudness_max);
             lastUpdateTime = musicTime;
           }
@@ -136,12 +132,15 @@ function main() {
 
     // End music update
 
-    const diffuseColor = controls['Diffuse Color'];
-    shader.setGeometryColor(vec4.fromValues(diffuseColor[0] / 255, diffuseColor[1] / 255, diffuseColor[2] / 255, 1.0));
-
-    renderer.render(camera, shader, [
+    // First pass: draw to framebuffer
+    renderer.renderSceneToFBO(camera, shader, [
       icosphere
     ]);
+
+    // Second pass: draw to screen
+    postProcessShader.setPostProcessTexture();
+    renderer.render(camera, postProcessShader, [screenSpanningQuad]);
+
     stats.end();
 
     // Tell the browser to call `tick` again whenever it renders a new frame
@@ -150,11 +149,13 @@ function main() {
 
   window.addEventListener('resize', function() {
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.resizeFramebuffer();
     camera.setAspectRatio(window.innerWidth / window.innerHeight);
     camera.updateProjectionMatrix();
   }, false);
 
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.resizeFramebuffer();
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
   camera.updateProjectionMatrix();
 

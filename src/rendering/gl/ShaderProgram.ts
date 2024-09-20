@@ -1,4 +1,4 @@
-import {vec4, vec3, mat4} from 'gl-matrix';
+import {vec4, vec3, mat4, vec2} from 'gl-matrix';
 import Drawable from './Drawable';
 import {gl} from '../../globals';
 
@@ -83,6 +83,16 @@ class ShaderProgram {
     if (this.unifColor !== -1) {
       gl.uniform4fv(this.unifColor, color);
     }
+  }
+
+  setDimensions(dimensions: vec2) {
+    this.use();
+    gl.uniform2fv(gl.getUniformLocation(this.prog, "u_Dimensions"), dimensions);
+  }
+
+  setPostProcessTexture() {
+    this.use();
+    gl.uniform1i(gl.getUniformLocation(this.prog, "u_PostProcessTexture"), 0);
   }
 
   setTime(time: number) {
