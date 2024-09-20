@@ -16,7 +16,6 @@ const controls = {
 let icosphere: Icosphere;
 let screenSpanningQuad: Square;
 let prevTimestamp: number = 0;
-let musicTime = 0;
 let musicSectionIndex = 0;
 let musicSegmentIndex = 0;
 let lastUpdateTime = 0;
@@ -88,8 +87,8 @@ function main() {
     // Updating music uniforms
 
     if ((window as any).isPlaying && (window as any).audioAnalysisData) {
+      let musicTime  = (window as any).musicTime;;
       let spotifyData = (window as any).audioAnalysisData;
-      musicTime += (deltaTime / 1000);
 
       shader.setTempo(Math.floor(spotifyData.track.tempo));
 

@@ -150,20 +150,17 @@
 
           embedController.addListener('playback_update', e => {
             window.isPlaying = !e.data.isPaused;
+            window.musicTime = (e.data.position / 1000.0).toFixed(2);
           });
         }
         IFrameAPI.createController(element, options, callback);
 
-        token = new URLSearchParams(window.location.hash.substring(1)).get('access_token');
-        fetch(`https://api.spotify.com/v1/audio-analysis/2Fxmhks0bxGSBdJ92vM42m`, {
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                }).then(response => response.json())
-                  .then(data => {
-                    window.audioAnalysisData = data;
-                  });
+        fetch('badguyaudioanalysis.json')
+          .then(response => response.json())
+          .then(data => {
+            window.audioAnalysisData = data;
+          });
+
       }
     </script>
     <canvas id="canvas"></canvas>
