@@ -33,7 +33,7 @@
       window.isPlaying = false;
 
       document.getElementById('login-button').addEventListener('click', () => {
-        const scopes = 'streaming user-read-private';
+        const scopes = 'streaming user-read-email user-read-private';
         const authUrl = `https://accounts.spotify.com/authorize?response_type=token&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
         window.location.href = authUrl;
       });
@@ -41,6 +41,10 @@
       window.onSpotifyWebPlaybackSDKReady = () => {
         token = new URLSearchParams(window.location.hash.substring(1)).get('access_token');
         if (!token) return;
+
+        document.getElementById('login-button').textContent = 'Logged in with Spotify';
+        document.getElementById('login-button').disabled = true;
+        document.getElementById('login-button').classList.add('pointer-events-none', 'cursor-default');
 
         const player = new Spotify.Player({
           name: 'Web Playback SDK Quick Start Player',
