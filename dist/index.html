@@ -33,7 +33,7 @@
       window.isPlaying = false;
 
       document.getElementById('login-button').addEventListener('click', () => {
-        const scopes = 'streaming user-read-email user-read-private';
+        const scopes = 'streaming';
         const authUrl = `https://accounts.spotify.com/authorize?response_type=token&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
         window.location.href = authUrl;
       });
