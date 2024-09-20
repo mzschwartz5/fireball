@@ -71,3 +71,11 @@ Choose one of the following options:
 - Publish your project to gh-pages. `npm run deploy`. It should now be visible at http://username.github.io/repo-name
 - Create a [pull request](https://help.github.com/articles/creating-a-pull-request/) to this repository, and in the comment, include a link to your published project.
 - Submit the link to your pull request on Canvas.
+
+
+
+
+TODO:
+- Mention dirac delta (alternatives difficult to control, computationally expensive)
+- Blooper
+- Video showing each stage compositing the final result
