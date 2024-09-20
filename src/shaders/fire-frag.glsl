@@ -112,28 +112,40 @@ void main()
     float maxHeight = 4.5; // top vert starts at 1.0 and then can be distorted by as much as 2.5 upwards
     float posYNormalized = (1.0 + fs_Pos.y) / (1.0 + maxHeight);
     float alpha = 1.0;
+    float intensity = 1.0;
     float radius = length(fs_Pos.xyz);
     float noise = clamp(cnoise(vec3(fs_Pos.x, fs_Pos.y - (u_FireSpeed * u_Time / 2000.0), fs_Pos.z), u_PerlinNoiseScale), 0.0, 1.0);
 
-    // Mix color between firey yellow and firey red based on noise
-    vec3 emissionColor = mix(u_HotColor, u_ColdColor, noise);
+    vec3 emissionColor = vec3(0.8);
+
+    // Lambertian reflection
+    intensity = max(0.0, dot(fs_Nor.xyz, -u_LookDirection));
+
+    if (u_Time > 18000.0) {
+        // Mix color between firey yellow and firey red based on noise
+        emissionColor = mix(emissionColor, mix(u_HotColor, u_ColdColor, noise), smoothstep(u_Time, 18000.0, 19000.0));
+    }
 
     // Since noise controls how red or yellow the flame is, doing this means
     // that the flame will be less intense when it is more red.
-    float intensity = mix(1.0, 0.5, pow(noise, 2.0));
-
     // Make flame redder, less intense, towards the top
-    emissionColor = mix(emissionColor, u_ColdColor , posYNormalized);
-    intensity *= (1.0 - bias(0.2,  posYNormalized));
+    if (u_Time > 22000.0) {
+        intensity = mix(intensity, mix(1.0, 0.5, pow(noise, 2.0)) * (1.0 - bias(0.2,  posYNormalized)), smoothstep(u_Time, 22000.0, 23000.0));
+        emissionColor = mix(emissionColor, mix(emissionColor, u_ColdColor , posYNormalized), smoothstep(u_Time, 22000.0, 23000.0));
+    }
 
-    // Note that the normals here are the normals of the original sphere. I just found this worked better even though it's a proxy.
-    // abs() because fire transmits light so it doesn't really matter if a point is facing towards or away from the camera.
-    float normalAlignment = abs(dot(fs_Nor.xyz, u_LookDirection));
-    alpha *= bias(0.2, normalAlignment);
+    // // Note that the normals here are the normals of the original sphere. I just found this worked better even though it's a proxy.
+    // // abs() because fire transmits light so it doesn't really matter if a point is facing towards or away from the camera.
 
-    // More red around the edges
-    emissionColor = mix(u_ColdColor, emissionColor, bias(0.8, normalAlignment));
+    if (u_Time > 24000.0) {
+        float normalAlignment = abs(dot(fs_Nor.xyz, u_LookDirection));
+        alpha = mix(alpha, alpha * bias(0.2, normalAlignment), smoothstep(u_Time, 24000.0, 25000.0));
 
-    // Compute final shaded color
+        // More red around the edges
+        emissionColor = mix(emissionColor, mix(u_ColdColor, emissionColor, bias(0.8, normalAlignment)), smoothstep(u_Time, 25000.0, 25000.0));
+    }
+
+
+    // // Compute final shaded color
     out_Col = vec4(intensity * emissionColor, alpha);
 }

@@ -32,6 +32,30 @@ function loadScene() {
   screenSpanningQuad.create();
 }
 
+// 0 if less than a, 1 if greater than b, and linearly interpolated between a and b otherwise
+function smoothStep(a: number, b: number, t: number) {
+  if (t < a) {
+    return 0;
+  }
+  else if (t > b) {
+    return 1;
+  }
+  else {
+    return (t - a) / (b - a);
+  }
+}
+
+function mix(a: number, b: number, t: number) {
+  return a + t * (b - a);
+}
+
+function mixColors(a: number[], b: number[], t: number) {
+  return [
+    Math.floor(mix(a[0], b[0], t)),
+    Math.floor(mix(a[1], b[1], t)),
+    Math.floor(mix(a[2], b[2], t))
+  ];
+}
 
 function main() {
   // Add controls to the gui
@@ -103,10 +127,27 @@ function main() {
 
     renderer.clear();
 
+    // Animating control properties for demo reel
+
+    controls.Bloom = mix(controls.Bloom, 1.5, smoothStep(29000.0, 30000.0, timestamp));
+    controls.Bloom = mix(controls.Bloom, 0, smoothStep(30000.0, 31000.0, timestamp));
+    controls.Bloom = mix(controls.Bloom, 0.75, smoothStep(31000.0, 32000.0, timestamp));
+
+    controls['Fire Speed'] = mix(controls['Fire Speed'], 2.0, smoothStep(33000.0, 34000.0, timestamp));
+    controls['Fire Speed'] = mix(controls['Fire Speed'], 0.3, smoothStep(38000.0, 39000.0, timestamp));
+    controls['Fire Speed'] = mix(controls['Fire Speed'], 1.0, smoothStep(43000.0, 44000.0, timestamp));
+
+    controls['Hot Color'] = mixColors(controls['Hot Color'], [82, 0, 255], smoothStep(52500.0, 53500.0, timestamp));
+    controls['Cold Color'] = mixColors(controls['Cold Color'], [255, 255, 255], smoothStep(63000.0, 64000.0, timestamp));
+
+    gui.updateDisplay();
+
+    // End animating control properties
+
     // Updating music uniforms
 
     if ((window as any).isPlaying && (window as any).audioAnalysisData) {
-      let musicTime  = (window as any).musicTime;;
+      let musicTime  = (window as any).musicTime;
       let spotifyData = (window as any).audioAnalysisData;
 
       if (musicSectionIndex < spotifyData.sections.length) {

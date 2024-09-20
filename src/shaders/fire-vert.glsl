@@ -110,11 +110,12 @@ void createBigRipples(inout vec3 modelposition) {
     float warpSpeed = 1500.0;
     float warpPhase = 0.0;
     float warpAmount = warpAmplitude * sin(warpFreq * PI * (modelposition.y - (u_FireSpeed * u_Time / warpSpeed) + warpPhase));
-    modelposition.xz += warpAmount * normalize(modelposition.xz);
+    modelposition.xz += smoothstep(u_Time, 6000.0, 7000.0) * warpAmount * normalize(modelposition.xz);
 }
 
 void shapeIntoFire(inout vec3 modelposition) {
-    modelposition.xz *= sqrt(-(modelposition.y - 1.0) / 2.0);
+    vec2 newPos = modelposition.xz * sqrt(-(modelposition.y - 1.0) / 2.0);
+    modelposition.xz = mix(modelposition.xz, newPos, smoothstep(10000.0, 11000.0, u_Time));
 }
 
 void createFireTendrils(inout vec3 modelposition) {
@@ -123,13 +124,22 @@ void createFireTendrils(inout vec3 modelposition) {
     // As we get towards the top of the flame, the tendrils should lean towards the center.
     vec3 center = normalize(modelposition) - vec3(0.0, 1.0, 0.0);
     float upwardsFactor = bias(0.4, (modelposition.y + 1.0) / 2.0);
-    modelposition.y += (3.5 * upwardsFactor * noise);
+    modelposition.y += smoothstep(u_Time, 14000.0, 15000.0) * (3.5 * upwardsFactor * noise);
 }
 
 void overallFireTransformation(inout vec3 modelposition) {
-    createBigRipples(modelposition);
-    shapeIntoFire(modelposition);
-    createFireTendrils(modelposition);
+    if (u_Time > 6000.0) {
+        createBigRipples(modelposition);
+    }
+
+    if (u_Time > 10000.0) {
+        shapeIntoFire(modelposition);
+    }
+
+    if (u_Time > 14000.0) {
+        createFireTendrils(modelposition);
+    }
+
 }
 
 void main()
@@ -154,7 +164,7 @@ void main()
     // Since loudness is in DB, we need to convert it to a linear scale
     float distortionAmplitude = clamp(pow(10.0, (u_Loudness - 5.0) * 0.05), 0.05, 1.75);
 
-    if (u_Tempo != 0.0) {
+    if (u_Tempo != 0.0 && u_Time > 45500.0) {
         float timePerBeat = (60.0 / u_Tempo) * 1000.0; // Time in milliseconds per beat
         // Repeats every timePerBeat, ranges from 0 to 1.
         // Phase shift u_Time so that the peak of the distortion is at the start of the beat

@@ -26,14 +26,14 @@
 
     <script>
       const clientId = 'f14888f06a444dbcbccc5b28f4c17c44';
-      const redirectUri = 'https://mzschwartz5.github.io/hw01-fireball/';
+      const redirectUri = 'http://localhost:5660';
       let deviceId = null;
       let token = null;
       let embedController;
       window.isPlaying = false;
 
       document.getElementById('login-button').addEventListener('click', () => {
-        const scopes = 'streaming user-read-private';
+        const scopes = 'streaming user-read-email user-read-private';
         const authUrl = `https://accounts.spotify.com/authorize?response_type=token&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
         window.location.href = authUrl;
       });
@@ -152,16 +152,16 @@
             window.isPlaying = !e.data.isPaused;
             window.musicTime = (e.data.position / 1000.0).toFixed(2);
           });
-        }
-        IFrameAPI.createController(element, options, callback);
 
-        fetch('badguyaudioanalysis.json')
+          fetch('badguyaudioanalysis.json')
           .then(response => response.json())
           .then(data => {
             window.audioAnalysisData = data;
           });
-
+        }
+        IFrameAPI.createController(element, options, callback);
       }
+
     </script>
     <canvas id="canvas"></canvas>
     <script type="text/javascript" src="bundle.js"></script>
