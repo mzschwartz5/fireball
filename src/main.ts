@@ -119,6 +119,9 @@ function main() {
         }
       }
     }
+    else {
+      shader.setTempo(0);
+    }
 
     // End music update
 
