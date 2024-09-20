@@ -104,32 +104,23 @@ function main() {
     renderer.clear();
 
     // Updating music uniforms
-
     if ((window as any).isPlaying && (window as any).audioAnalysisData) {
-      let musicTime  = (window as any).musicTime;;
+      let musicTime  = (window as any).musicTime;
       let spotifyData = (window as any).audioAnalysisData;
+
+      shader.setTempo(Math.floor(spotifyData.track.tempo));
 
       if (musicSectionIndex < spotifyData.sections.length) {
 
         if (musicTime > spotifyData.sections[musicSectionIndex].start) {
-          shader.setTempo(Math.floor(spotifyData.sections[musicSectionIndex].tempo));
           musicSectionIndex++;
         }
       }
 
-      let shouldUpdate = false;
-      let beatLength = 60 / spotifyData.track.tempo;
-      if (musicTime - lastUpdateTime > beatLength && musicTime - lastUpdateTime < beatLength + deltaTime) {
-        shouldUpdate = true;
-      }
-
       if (musicSegmentIndex < spotifyData.segments.length) {
         if (spotifyData.segments[musicSegmentIndex].confidence > 0.85) {
-          // Update loudness every beat (not every frame)
-          if (shouldUpdate) {
-            shader.setLoudness(spotifyData.segments[musicSegmentIndex].loudness_max);
-            lastUpdateTime = musicTime;
-          }
+          shader.setLoudness(spotifyData.segments[musicSegmentIndex].loudness_max);
+          lastUpdateTime = musicTime;
         }
         if (musicTime > spotifyData.segments[musicSegmentIndex].start) {
           musicSegmentIndex++;
