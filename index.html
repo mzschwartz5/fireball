@@ -1,0 +1,169 @@
+<!doctype html>
+<html>
+  <head>
+      <title>Project 1: Fireball | CIS 566</title>
+      <link href="tailwindoutput.css" rel="stylesheet">
+      <style>
+        html, body {
+          margin: 0;
+          overflow: hidden;
+        }
+        #canvas {
+          width: 100%;
+          height: 100%;
+        }
+      </style>
+      <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  </head>
+  <body>
+    <div class="fixed top-4 left-4 z-50 p-4 bg-transparent rounded shadow-lg">
+      <div id="embed-iframe"></div>
+      <button id="login-button" class="bg-green-500 text-white font-bold py-2 px-4 rounded shadow-lg hover:bg-green-600 mt-4">Log in with Spotify</button>
+      <input type="text" id="search-query" class="mt-4 p-2 bg-gray-300 rounded shadow-md" placeholder="Search for a song">
+      <div id="search-results" class="mt-4 p-4 rounded bg-gray-800 shadow-lg overflow-y-auto max-h-96 flex flex-col items-center justify-start text-center text-xl font-bold" style="display:none"></div>
+    </div>
+    <script src="https://open.spotify.com/embed/iframe-api/v1" async> </script>
+
+    <script>
+      const clientId = 'f14888f06a444dbcbccc5b28f4c17c44';
+      const redirectUri = 'http://localhost:5660';
+      let deviceId = null;
+      let token = null;
+      let embedController;
+      window.isPlaying = false;
+
+      document.getElementById('login-button').addEventListener('click', () => {
+        const scopes = 'streaming user-read-email user-read-private';
+        const authUrl = `https://accounts.spotify.com/authorize?response_type=token&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+        window.location.href = authUrl;
+      });
+
+      window.onSpotifyWebPlaybackSDKReady = () => {
+        token = new URLSearchParams(window.location.hash.substring(1)).get('access_token');
+        if (!token) return;
+
+        const player = new Spotify.Player({
+          name: 'Web Playback SDK Quick Start Player',
+          getOAuthToken: cb => { cb(token); }
+        });
+
+        player.addListener('initialization_error', ({ message }) => {
+          console.error('Failed to initialize', message);
+        });
+
+        player.addListener('authentication_error', ({ message }) => {
+          console.error('Failed to authenticate', message);
+        });
+
+        player.addListener('account_error', ({ message }) => {
+          console.error('Failed to validate Spotify account', message);
+        });
+
+        player.addListener('playback_error', ({ message }) => {
+          console.error('Failed to perform playback', message);
+        });
+
+        player.addListener('ready', ({ device_id }) => {
+          deviceId = device_id;
+          console.log('Ready with Device ID', device_id);
+        });
+
+        player.addListener('not_ready', ({ device_id }) => {
+          console.log('Device ID has gone offline', device_id);
+        });
+
+        player.connect();
+      };
+
+      document.getElementById('search-query').addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') {
+          return;
+        }
+
+        const query = document.getElementById('search-query').value;
+        if (!query || !token) return;
+
+        fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        }).then(response => response.json())
+          .then(data => {
+            const resultsContainer = document.getElementById('search-results');
+            resultsContainer.innerHTML = ''; // Clear previous results
+            resultsContainer.style.display = 'flex'; // Show the results container
+
+            data.tracks.items.forEach(track => {
+              const item = document.createElement('div');
+              item.className = 'flex items p-4 bg-gray-800 rounded shadow-md mt-4 w-full';
+              item.style.width = '100%'; // Ensure the item takes up the full width of the parent container
+              item.innerHTML = `
+                <img src="${track.album.images[0].url}" alt="${track.name}" class="w-12 h-12 rounded mr-4">
+                <span class="text-white font-medium">${track.name}</span>
+              `;
+
+              item.addEventListener('click', () => {
+                console.log(`Track selected: ${track.uri}`);
+                resultsContainer.innerHTML = ''; // Hide the dropdown menu
+                resultsContainer.style.display = 'none'; // Hide the results container
+                if (embedController) {
+                  embedController.loadUri(track.uri);
+                }
+
+                fetch(`https://api.spotify.com/v1/audio-analysis/${track.id}`, {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                }).then(response => response.json())
+                  .then(data => {
+                    window.audioAnalysisData = data;
+                  });
+
+              });
+              resultsContainer.appendChild(item);
+            });
+          }).catch(error => {
+            console.error('Error fetching search results:', error);
+          });
+      });
+
+      document.getElementById('search-query').addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          const resultsContainer = document.getElementById('search-results');
+          resultsContainer.innerHTML = '';
+          resultsContainer.style.display = 'none'; // Hide the results container
+        }
+      });
+
+      window.onSpotifyIframeApiReady = (IFrameAPI) => {
+        const element = document.getElementById('embed-iframe');
+        const options = {
+          width: '100%',
+          height: '160',
+          uri: 'spotify:track:2Fxmhks0bxGSBdJ92vM42m'
+        };
+
+        const callback = (EmbedController) => {
+          embedController = EmbedController;
+
+          embedController.addListener('playback_update', e => {
+            window.isPlaying = !e.data.isPaused;
+            window.musicTime = (e.data.position / 1000.0).toFixed(2);
+          });
+        }
+        IFrameAPI.createController(element, options, callback);
+
+        fetch('badguyaudioanalysis.json')
+          .then(response => response.json())
+          .then(data => {
+            window.audioAnalysisData = data;
+          });
+
+      }
+    </script>
+    <canvas id="canvas"></canvas>
+    <script type="text/javascript" src="bundle.js"></script>
+  </body>
+</html>
