@@ -109,11 +109,10 @@ function main() {
       let musicTime  = (window as any).musicTime;;
       let spotifyData = (window as any).audioAnalysisData;
 
-      shader.setTempo(Math.floor(spotifyData.track.tempo));
-
       if (musicSectionIndex < spotifyData.sections.length) {
 
         if (musicTime > spotifyData.sections[musicSectionIndex].start) {
+          shader.setTempo(Math.floor(spotifyData.sections[musicSectionIndex].tempo));
           musicSectionIndex++;
         }
       }

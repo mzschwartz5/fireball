@@ -161,14 +161,14 @@ void main()
         float modTime = mod(u_Time, timePerBeat) / timePerBeat;
         float temporalDistortion = bias(0.9, modTime);
         float spatialDistortion = diracDelta(posYNormalized - modTime, 0.1); // bit of a misnomer as it also depends on time... sue me, variables are hard to name.
-        float distortion = spatialDistortion * distortionAmplitude;
+        float distortion = spatialDistortion * temporalDistortion * distortionAmplitude;
 
         // Pulse outwards in xz plane
-        modelposition.xz += distortion * normalize(modelposition.xz);
+        modelposition.xz += clamp(distortion * normalize(modelposition.xz), -1.0, 1.5);
 
         // Pull tendrils upwards
         float upwardsFactor = bias(0.4, posYNormalized);
-        modelposition.y += (10.0 * distortionAmplitude * diracDelta(modTime - 0.5, 0.1) * upwardsFactor);
+        modelposition.y += (5.0 * distortionAmplitude * diracDelta(modTime - 0.5, 0.1) * upwardsFactor);
     }
 
     /* End distortion */
