@@ -10,7 +10,12 @@ import Square from './geometry/Square';
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
-  'Load Scene': loadScene, // A function pointer, essentially
+  'Bloom': 0.75,
+  'Fire Speed': 1.0,
+  'Cell Noise Scale': 2.0,
+  'Tendril Noise Layers': 3.0,
+  'Hot Color': [255, 255, 0],
+  'Cold Color': [255, 0, 0],
 };
 
 let icosphere: Icosphere;
@@ -31,7 +36,12 @@ function loadScene() {
 function main() {
   // Add controls to the gui
   const gui = new DAT.GUI();
-  gui.add(controls, 'Load Scene');
+  gui.add(controls, 'Bloom', 0.0, 1.5).step(0.05);
+  gui.add(controls, 'Fire Speed', 0.0, 5.0).step(0.1);
+  gui.add(controls, 'Cell Noise Scale', 0.0, 10.0).step(0.1);
+  gui.add(controls, 'Tendril Noise Layers', 1.0, 6.0).step(1.0);
+  gui.addColor(controls, 'Hot Color');
+  gui.addColor(controls, 'Cold Color');
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -72,6 +82,15 @@ function main() {
     }
     let deltaTime = timestamp - prevTimestamp; // Calculate delta time
     prevTimestamp = timestamp; // Update previous timestamp
+
+    // Controls
+    postProcessShader.setBloom(controls.Bloom);
+    fireShader.setFireSpeed(controls['Fire Speed']);
+    fireShader.setPerlinNoiseScale(controls['Cell Noise Scale']);
+    fireShader.setTendrilNoiseLayers(controls['Tendril Noise Layers']);
+    fireShader.setHotColor(vec3.fromValues(controls['Hot Color'][0] / 255, controls['Hot Color'][1] / 255, controls['Hot Color'][2] / 255));
+    fireShader.setColdColor(vec3.fromValues(controls['Cold Color'][0] / 255, controls['Cold Color'][1] / 255, controls['Cold Color'][2] / 255));
+    // End controls
 
     let shader = fireShader;
     shader.setTime(timestamp);

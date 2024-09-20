@@ -3,6 +3,7 @@ precision highp float;
 
 uniform vec2 u_Dimensions;
 uniform sampler2D u_PostProcessTexture;
+uniform float u_Bloom;
 
 out vec4 out_Col;
 
@@ -34,7 +35,6 @@ const float kernel[121] = float[](0.006849, 0.007239, 0.007559, 0.007795, 0.0079
 
 const int radius = 5;
 const int dim = 11;
-const float blurStrength = 0.75;
 
 void main()
 {
@@ -54,7 +54,7 @@ void main()
         }
     }
 
-    weightedAverage *= blurStrength;
+    weightedAverage *= u_Bloom;
 
     out_Col = texture(u_PostProcessTexture, gl_FragCoord.xy / u_Dimensions) + vec4(weightedAverage, 1.0);
 }

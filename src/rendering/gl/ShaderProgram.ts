@@ -28,7 +28,20 @@ class ShaderProgram {
   unifModel: WebGLUniformLocation;
   unifModelInvTr: WebGLUniformLocation;
   unifViewProj: WebGLUniformLocation;
-  unifColor: WebGLUniformLocation;
+
+  unifDimensions: WebGLUniformLocation;
+  unifPostProcessTexture: WebGLUniformLocation;
+  unifTime: WebGLUniformLocation;
+  unifLoudness: WebGLUniformLocation;
+  unifTempo: WebGLUniformLocation;
+  unifBloom: WebGLUniformLocation;
+  unifFireSpeed: WebGLUniformLocation;
+  unifPerlinNoiseScale: WebGLUniformLocation;
+
+  unifTendrilNoiseLayers: WebGLUniformLocation;
+  unifHotColor: WebGLUniformLocation;
+  unifColdColor: WebGLUniformLocation;
+  unifLookDirection: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -47,7 +60,20 @@ class ShaderProgram {
     this.unifModel      = gl.getUniformLocation(this.prog, "u_Model");
     this.unifModelInvTr = gl.getUniformLocation(this.prog, "u_ModelInvTr");
     this.unifViewProj   = gl.getUniformLocation(this.prog, "u_ViewProj");
-    this.unifColor      = gl.getUniformLocation(this.prog, "u_Color");
+
+    this.unifDimensions = gl.getUniformLocation(this.prog, "u_Dimensions");
+    this.unifPostProcessTexture = gl.getUniformLocation(this.prog, "u_PostProcessTexture");
+    this.unifTime = gl.getUniformLocation(this.prog, "u_Time");
+    this.unifLoudness = gl.getUniformLocation(this.prog, "u_Loudness");
+    this.unifTempo = gl.getUniformLocation(this.prog, "u_Tempo");
+    this.unifBloom = gl.getUniformLocation(this.prog, "u_Bloom");
+    this.unifFireSpeed = gl.getUniformLocation(this.prog, "u_FireSpeed");
+    this.unifPerlinNoiseScale = gl.getUniformLocation(this.prog, "u_PerlinNoiseScale");
+    this.unifTendrilNoiseLayers = gl.getUniformLocation(this.prog, "u_TendrilNoiseLayers");
+    this.unifHotColor = gl.getUniformLocation(this.prog, "u_HotColor");
+    this.unifColdColor = gl.getUniformLocation(this.prog, "u_ColdColor");
+    this.unifLookDirection = gl.getUniformLocation(this.prog, "u_LookDirection");
+
   }
 
   use() {
@@ -78,41 +104,64 @@ class ShaderProgram {
     }
   }
 
-  setGeometryColor(color: vec4) {
-    this.use();
-    if (this.unifColor !== -1) {
-      gl.uniform4fv(this.unifColor, color);
-    }
-  }
-
   setDimensions(dimensions: vec2) {
     this.use();
-    gl.uniform2fv(gl.getUniformLocation(this.prog, "u_Dimensions"), dimensions);
+    gl.uniform2fv(this.unifDimensions, dimensions);
   }
 
   setPostProcessTexture() {
     this.use();
-    gl.uniform1i(gl.getUniformLocation(this.prog, "u_PostProcessTexture"), 0);
+    gl.uniform1i(this.unifPostProcessTexture, 0);
   }
 
   setTime(time: number) {
     this.use();
-    gl.uniform1f(gl.getUniformLocation(this.prog, "u_Time"), time);
+    gl.uniform1f(this.unifTime, time);
   }
 
   setLoudness(loudness: number) {
     this.use();
-    gl.uniform1f(gl.getUniformLocation(this.prog, "u_Loudness"), loudness);
+    gl.uniform1f(this.unifLoudness, loudness);
   }
 
   setTempo(tempo: number) {
     this.use();
-    gl.uniform1f(gl.getUniformLocation(this.prog, "u_Tempo"), tempo);
+    gl.uniform1f(this.unifTempo, tempo);
+  }
+
+  setBloom(bloom: number) {
+    this.use();
+    gl.uniform1f(this.unifBloom, bloom);
+  }
+
+  setFireSpeed(fireSpeed: number) {
+    this.use();
+    gl.uniform1f(this.unifFireSpeed, fireSpeed);
+  }
+
+  setPerlinNoiseScale(perlinNoiseScale: number) {
+    this.use();
+    gl.uniform1f(this.unifPerlinNoiseScale, perlinNoiseScale);
+  }
+
+  setTendrilNoiseLayers(tendrilNoiseLayers: number) {
+    this.use();
+    gl.uniform1f(this.unifTendrilNoiseLayers, tendrilNoiseLayers);
+  }
+
+  setHotColor(hotColor: vec3) {
+    this.use();
+    gl.uniform3fv(this.unifHotColor, hotColor);
+  }
+
+  setColdColor(coldColor: vec3) {
+    this.use();
+    gl.uniform3fv(this.unifColdColor, coldColor);
   }
 
   setLookDirection(lookDirection: vec3) {
     this.use();
-    gl.uniform3fv(gl.getUniformLocation(this.prog, "u_LookDirection"), lookDirection);
+    gl.uniform3fv(this.unifLookDirection, lookDirection);
   }
 
   draw(d: Drawable) {

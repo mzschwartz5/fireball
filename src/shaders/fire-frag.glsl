@@ -11,9 +11,12 @@
 // position, light position, and vertex color.
 precision highp float;
 
-uniform vec4 u_Color; // The color with which to render this instance of geometry.
 uniform vec3 u_LookDirection;
 uniform float u_Time;
+uniform float u_FireSpeed;
+uniform float u_PerlinNoiseScale;
+uniform vec3 u_HotColor;
+uniform vec3 u_ColdColor;
 
 // These are the interpolated values out of the rasterizer, so you can't know
 // their specific values without knowing the vertices that contributed to them
@@ -104,27 +107,23 @@ float bias(float b, float t) {
     return pow(t, log(b) / log(0.5));
 }
 
-vec4 red  = vec4(1.0, 0.0, 0.0, 1.0);
-vec4 yellow = vec4(1.0, 1.0, 0.0, 1.0);
-vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
-
 void main()
 {
     float maxHeight = 4.5; // top vert starts at 1.0 and then can be distorted by as much as 2.5 upwards
     float posYNormalized = (1.0 + fs_Pos.y) / (1.0 + maxHeight);
     float alpha = 1.0;
     float radius = length(fs_Pos.xyz);
-    float noise = clamp(cnoise(vec3(fs_Pos.x, fs_Pos.y - u_Time / 2000.0, fs_Pos.z), 2.0), 0.0, 1.0);
+    float noise = clamp(cnoise(vec3(fs_Pos.x, fs_Pos.y - (u_FireSpeed * u_Time / 2000.0), fs_Pos.z), u_PerlinNoiseScale), 0.0, 1.0);
 
     // Mix color between firey yellow and firey red based on noise
-    vec4 emissionColor = mix(yellow, red, noise);
+    vec3 emissionColor = mix(u_HotColor, u_ColdColor, noise);
 
     // Since noise controls how red or yellow the flame is, doing this means
     // that the flame will be less intense when it is more red.
     float intensity = mix(1.0, 0.5, pow(noise, 2.0));
 
     // Make flame redder, less intense, towards the top
-    emissionColor = mix(emissionColor, red , posYNormalized);
+    emissionColor = mix(emissionColor, u_ColdColor , posYNormalized);
     intensity *= (1.0 - bias(0.2,  posYNormalized));
 
     // Note that the normals here are the normals of the original sphere. I just found this worked better even though it's a proxy.
@@ -133,8 +132,8 @@ void main()
     alpha *= bias(0.2, normalAlignment);
 
     // More red around the edges
-    emissionColor = mix(red, emissionColor, bias(0.8, normalAlignment));
+    emissionColor = mix(u_ColdColor, emissionColor, bias(0.8, normalAlignment));
 
     // Compute final shaded color
-    out_Col = vec4(intensity * emissionColor.rgb, alpha);
+    out_Col = vec4(intensity * emissionColor, alpha);
 }

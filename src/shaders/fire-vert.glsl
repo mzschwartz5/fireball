@@ -12,6 +12,8 @@ uniform float u_Time;
 // Used for driving animation with music
 uniform float u_Loudness;
 uniform float u_Tempo; // BPM
+uniform float u_FireSpeed;
+uniform float u_TendrilNoiseLayers;
 
 uniform mat4 u_Model;       // The matrix that defines the transformation of the
                             // object we're rendering. In this assignment,
@@ -107,7 +109,7 @@ void createBigRipples(inout vec3 modelposition) {
     float warpFreq = 5.0;
     float warpSpeed = 1500.0;
     float warpPhase = 0.0;
-    float warpAmount = warpAmplitude * sin(warpFreq * PI * (modelposition.y - (u_Time / warpSpeed) + warpPhase));
+    float warpAmount = warpAmplitude * sin(warpFreq * PI * (modelposition.y - (u_FireSpeed * u_Time / warpSpeed) + warpPhase));
     modelposition.xz += warpAmount * normalize(modelposition.xz);
 }
 
@@ -116,7 +118,7 @@ void shapeIntoFire(inout vec3 modelposition) {
 }
 
 void createFireTendrils(inout vec3 modelposition) {
-    float noise = fbm(vec3(modelposition.x, modelposition.y - u_Time / 8000.0, modelposition.z), 3);
+    float noise = fbm(vec3(modelposition.x, modelposition.y - (u_FireSpeed * u_Time / 8000.0), modelposition.z), int(u_TendrilNoiseLayers));
 
     // As we get towards the top of the flame, the tendrils should lean towards the center.
     vec3 center = normalize(modelposition) - vec3(0.0, 1.0, 0.0);
