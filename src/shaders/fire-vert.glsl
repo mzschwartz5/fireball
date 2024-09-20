@@ -39,7 +39,14 @@ out vec4 fs_Pos;            // The position of each vertex. This is implicitly p
 const float PI = 3.14159265359;
 
 float powPulse(float x, float k) {
+    if (x < 0.0 || x > 1.0) {
+        return 0.0;
+    }
     return pow(4.0 * x * (1.0 - x), k);
+}
+
+float diracDelta(float x, float a) {
+    return exp(-pow(x / a, 2.0));
 }
 
 float bias(float b, float t) {
@@ -114,8 +121,7 @@ void createFireTendrils(inout vec3 modelposition) {
     // As we get towards the top of the flame, the tendrils should lean towards the center.
     vec3 center = normalize(modelposition) - vec3(0.0, 1.0, 0.0);
     float upwardsFactor = bias(0.4, (modelposition.y + 1.0) / 2.0);
-    vec3 tendrilDirection = mix(vec3(0.0, 1.0, 0.0), center, upwardsFactor);
-    modelposition += (3.5 * upwardsFactor * noise * vec3(0.0, 1.0, 0.0));
+    modelposition.y += (3.5 * upwardsFactor * noise);
 }
 
 void overallFireTransformation(inout vec3 modelposition) {
@@ -137,6 +143,7 @@ void main()
 
 
     vec4 modelposition = u_Model * vs_Pos;   // Temporarily store the transformed vertex positions for use below
+    float posYNormalized = (modelposition.y + 1.0) / 4.5; // Tendrils can stretch upwards 3.5, so to normalize to 0-1 range, divide by 4.5
 
     /* Warp vertices in model space to look like fire */
     overallFireTransformation(modelposition.xyz);
@@ -150,8 +157,16 @@ void main()
         // Repeats every timePerBeat, ranges from 0 to 1.
         // Phase shift u_Time so that the peak of the distortion is at the start of the beat
         float modTime = mod(u_Time, timePerBeat) / timePerBeat;
-        float distortion = distortionAmplitude * powPulse(modTime, 7.0);
-        modelposition.xyz += distortion * normalize(modelposition.xyz);
+        float temporalDistortion = bias(0.9, modTime);
+        float spatialDistortion = diracDelta(posYNormalized - modTime, 0.1); // bit of a misnomer as it also depends on time... sue me, variables are hard to name.
+        float distortion = spatialDistortion * distortionAmplitude;
+
+        // Pulse outwards in xz plane
+        modelposition.xz += distortion * normalize(modelposition.xz);
+
+        // Pull tendrils upwards
+        float upwardsFactor = bias(0.4, posYNormalized);
+        modelposition.y += (10.0 * distortionAmplitude * diracDelta(modTime - 0.5, 0.1) * upwardsFactor);
     }
 
     /* End distortion */
