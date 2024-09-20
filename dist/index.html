@@ -2,46 +2,25 @@
 <html>
   <head>
       <title>Project 1: Fireball | CIS 566</title>
+      <link href="tailwindoutput.css" rel="stylesheet">
       <style>
         html, body {
           margin: 0;
           overflow: hidden;
-          background-color: rgb(12.25,12.25,12.25);
         }
         #canvas {
           width: 100%;
           height: 100%;
         }
-        #search-results {
-          position: absolute;
-          background: white;
-          border: 1px solid #ccc;
-          max-height: 200px;
-          overflow-y: auto;
-          width: 300px;
-        }
-        .search-result-item {
-          display: flex;
-          align-items: center;
-          padding: 5px;
-          cursor: pointer;
-        }
-        .search-result-item img {
-          width: 50px;
-          height: 50px;
-          margin-right: 10px;
-        }
       </style>
       <script src="https://sdk.scdn.co/spotify-player.js"></script>
   </head>
   <body>
-    <button id="login-button">Log in with Spotify</button>
-    <input type="text" id="search-query" placeholder="Search for a song">
-    <div id="player"></div>
-    <div id="search-results"></div>
-    <button id="search-button">Search</button>
-
-    <div id="embed-iframe"></div>
+    <div class="fixed top-4 left-4 z-50 p-4 bg-transparent rounded shadow-lg">
+      <div id="embed-iframe"></div>
+      <button id="login-button" class="bg-green-500 text-white font-bold py-2 px-4 rounded shadow-lg hover:bg-green-600 mt-4">Log in with Spotify</button>
+      <input type="text" id="search-query" class="mt-4 p-2 bg-gray-300 rounded shadow-md" placeholder="Search for a song">
+      <div id="search-results" class="mt-4 p-4 rounded bg-gray-800 shadow-lg overflow-y-auto max-h-96 flex flex-col items-center justify-center text-center text-xl font-bold" style="display:none"></div>    </div>
     <script src="https://open.spotify.com/embed/iframe-api/v1" async> </script>
 
     <script>
@@ -95,7 +74,11 @@
         player.connect();
       };
 
-      document.getElementById('search-button').addEventListener('click', () => {
+      document.getElementById('search-query').addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') {
+          return;
+        }
+
         const query = document.getElementById('search-query').value;
         if (!query || !token) return;
 
@@ -108,17 +91,21 @@
           .then(data => {
             const resultsContainer = document.getElementById('search-results');
             resultsContainer.innerHTML = ''; // Clear previous results
+            resultsContainer.style.display = 'flex'; // Show the results container
 
             data.tracks.items.forEach(track => {
               const item = document.createElement('div');
-              item.className = 'search-result-item';
+              item.className = 'flex items p-4 bg-gray-800 rounded shadow-md mt-4 w-full';
+              item.style.width = '100%'; // Ensure the item takes up the full width of the parent container
               item.innerHTML = `
-                <img src="${track.album.images[0].url}" alt="${track.name}">
-                <span>${track.name}</span>
+                <img src="${track.album.images[0].url}" alt="${track.name}" class="w-12 h-12 rounded mr-4">
+                <span class="text-white font-medium">${track.name}</span>
               `;
+
               item.addEventListener('click', () => {
                 console.log(`Track selected: ${track.uri}`);
                 resultsContainer.innerHTML = ''; // Hide the dropdown menu
+                resultsContainer.style.display = 'none'; // Hide the results container
                 if (embedController) {
                   embedController.loadUri(track.uri);
                 }
@@ -139,6 +126,14 @@
           }).catch(error => {
             console.error('Error fetching search results:', error);
           });
+      });
+
+      document.getElementById('search-query').addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          const resultsContainer = document.getElementById('search-results');
+          resultsContainer.innerHTML = '';
+          resultsContainer.style.display = 'none'; // Hide the results container
+        }
       });
 
       window.onSpotifyIframeApiReady = (IFrameAPI) => {

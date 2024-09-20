@@ -1,5 +1,4 @@
 import {vec3, vec2} from 'gl-matrix';
-const Stats = require('stats-js');
 import * as DAT from 'dat.gui';
 import Icosphere from './geometry/Icosphere';
 import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
@@ -31,14 +30,6 @@ function loadScene() {
 
 
 function main() {
-  // Initial display for framerate
-  const stats = Stats();
-  stats.setMode(0);
-  stats.domElement.style.position = 'absolute';
-  stats.domElement.style.left = '0px';
-  stats.domElement.style.top = '0px';
-  document.body.appendChild(stats.domElement);
-
   // Add controls to the gui
   const gui = new DAT.GUI();
   gui.add(controls, 'Load Scene');
@@ -89,7 +80,6 @@ function main() {
     camera.update();
     shader.setLookDirection(camera.getLookDirection());
 
-    stats.begin();
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     postProcessShader.setDimensions(vec2.fromValues(window.innerWidth, window.innerHeight));
 
@@ -140,8 +130,6 @@ function main() {
     // Second pass: draw to screen
     postProcessShader.setPostProcessTexture();
     renderer.render(camera, postProcessShader, [screenSpanningQuad]);
-
-    stats.end();
 
     // Tell the browser to call `tick` again whenever it renders a new frame
     requestAnimationFrame(tick);
