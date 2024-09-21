@@ -27,3 +27,13 @@ I had some trouble finding a mathematical function that produced the right shape
 <br>
 
 It's literally designed to have an infinitely sharp peak as `a` approaches 0. And, unlike power curves, it doesn't get computationally more expensive to make the peak sharper!
+
+### Bloopers
+
+Here's an outtake from the process of creating the tendrils, early on, that I just find particularly humorous and would like to immortalize on this README:
+
+<div align="center">
+    <a href="https://www.youtube.com/watch?v=WUydcKwQkEo">
+        <img src="images/fireball_blooper.webp" alt="Fireball Outtake" width="500" height="500">
+    </a>
+</div>
