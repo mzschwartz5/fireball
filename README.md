@@ -1,7 +1,7 @@
 # Fireball Animation
 
 
-Sphere turned fireball ([live demo](https://mzschwartz5.github.io/hw01-fireball/))! This is a WebGL project, using vertex and fragment shaders and some postprocessing to animate a fireball. I made a video roughly detailing each step of the creation process, so this is going to be more of a WATCHME than a README:
+Sphere turned fireball ([live demo](https://mzschwartz5.github.io/fireball/))! This is a WebGL project, using vertex and fragment shaders and some postprocessing to animate a fireball. I made a video roughly detailing each step of the creation process, so this is going to be more of a WATCHME than a README:
 
 <br>
 
